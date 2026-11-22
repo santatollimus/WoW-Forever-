@@ -830,7 +830,7 @@ local function Build()
 end
 
 
--- Six-position selector: Auto, Chase, Pet, Target Range, SparkleRadar, Off.
+-- Seven-position selector: Auto, Chase, Pet, Target Range, Radar, Off, SparkleBag.
 -- Its position and selected mode are saved in SparkleButtDB.
 local buttonDefinitions = {
     { key="auto",    label="Auto",    rgb={0.18,0.44,0.82} },
@@ -838,6 +838,7 @@ local buttonDefinitions = {
     { key="pet",     label="Pet",     rgb={0.98,0.76,0.18} },
     { key="radar", label="SparkleRadar (click to toggle on/off)", rgb={1.00,0.46,0.06} },
     { key="off",     label="Off",     rgb={0.94,0.24,0.26} },
+    { key="bag",     label="SparkleBag: deposit inventory items already in your bank (requires open bank)", rgb={0.80,0.84,0.90} },
 }
 local function CurrentMode()
     if not db or not db.enabled then return "off" end
@@ -862,6 +863,12 @@ local function ApplyMode(key)
     local oldX,oldY
     if holder and wasEnabled and holder:IsShown() then
         oldX,oldY=holder:GetCenter()
+    end
+    -- SparkleBag is an independent bank action, not a navigation mode.
+    if key=="bag" then
+        if type(SparkleBagToggle)=="function" then SparkleBagToggle()
+        else Say("SparkleBag module unavailable. Check SparkleBag.lua.") end
+        return
     end
     -- SparkleRadar is independent from the dragon's navigation mode.
     -- Toggle before touching snack, flight, or mode state.
@@ -941,14 +948,14 @@ end
 local function BuildSelector()
     if selector then return end
     selector=CreateFrame("Frame","SparkleButtModeSelector",UIParent)
-    selector:SetSize(20,130)
+    selector:SetSize(20,155)
     selector:SetFrameStrata("DIALOG")
     selector:SetClampedToScreen(true)
     selector:SetMovable(true)
     selector:EnableMouse(true)
     selector:RegisterForDrag("LeftButton")
     selector:SetPoint("TOPRIGHT",UIParent,"TOPRIGHT",db.selectorX,db.selectorY)
-    -- No tray or rectangular backing: only the six circular controls render.
+    -- No tray or rectangular backing: seven circular controls render.
     selector:SetScript("OnDragStart",function(self) self:StartMoving() end)
     local function SavePosition(self)
         self:StopMovingOrSizing()
@@ -1036,7 +1043,10 @@ UpdateModeUI=function()
     for i,def in ipairs(buttonDefinitions) do
         local b=modeButtons[i]
         local active=(mode==def.key)
-        if def.key=="radar" then
+        if def.key=="bag" then
+            -- Always silver: bank transfers are actions, never navigation modes.
+            b.disc:SetVertexColor(unpack(def.rgb))
+        elseif def.key=="radar" then
             -- Radar is a separate toggle, not a navigation mode.
             local radarOn = type(SparkleButtRadarIsEnabled)=="function" and SparkleButtRadarIsEnabled()
             if radarOn then b.disc:SetVertexColor(unpack(def.rgb))
@@ -1100,7 +1110,7 @@ events:SetScript("OnEvent",function(_,event,name)
             autoRouteSeenFor=0
             if not db.chase then Move(0) end
         end
-        Say("v0.6.25 ready - Off shuts down dragon and SparkleRadar; radar toggle remains independent.")
+        Say("v0.6.37 ready - SparkleBag quiet one-stack deposits; radar remains independent.")
     end
 end)
 
