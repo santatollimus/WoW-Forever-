@@ -4,11 +4,11 @@
 
 ### Seven surprisingly capable magical traveling companions.
 
-**Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · SparkleBag · Custom waypoints · Snacks**
+**Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · SparkleBag · SparkleWand · Custom waypoints · Snack Heart**
 
 *An accessibility-minded companion addon built for WoW Forever, powered by StarfallTrail navigation.*
 
-**Current build:** v0.6.45 (Wardrobe Preview test build) · **WoW Forever interface:** 16001
+**Current build:** v0.6.46 (Snack Heart + SparkleWand) · **WoW Forever interface:** 16001
 
 </div>
 
@@ -28,9 +28,11 @@ SparkleButt is a small animated magical companion that stays with your character
 | 📍 **Go wherever you want** | 🟡 **Quest hints** |
 | **Alt + left-click** anywhere on your world map to set a custom destination. SparkleButt leads you there, then returns to your quest route. | A yellow quest indicator flags mouseover creatures with **readable, unfinished** quest objectives. |
 | 💚 **A bit of personality** | ✨ **A smooth little flyer** |
-| Give him a snack with `/sb snack` and watch his little animation. | SparkleButt flies between guiding and Pet positions rather than abruptly teleporting. |
-| 🪙 **SparkleBag** | 💬 **Player interactions** |
-| Open your bank and press the silver SparkleBag control **once** to deposit matching items from your backpack and equipped bags. | Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. |
+| Click the **hollow pink heart above the wardrobe button** or use `/sb snack` to give SparkleButt a treat. The heart fills during the snack animation, then becomes hollow again. | SparkleButt flies between guiding and Pet positions rather than abruptly teleporting. |
+| 🪙 **SparkleBag** | 💜 **SparkleWand** |
+| Open your bank and press the silver SparkleBag control **once** to deposit matching items from your backpack and equipped bags. | Enable the **plum-purple SparkleWand control** for right-click wand shooting on hostile mouseover targets. Turn it off to restore ordinary right-click behavior. |
+| 💬 **Player interactions** | ❤️ **Snack Heart** |
+| Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. | Click the hollow heart above the wardrobe selector to play the snack animation; it fills while the treat is active. |
 
 ### Meet the companion wardrobe
 
@@ -52,10 +54,11 @@ The small **color-changing wardrobe button above Auto** cycles through these loo
 
 > **Rare & elite alerts:** Special alerts are implemented, but the rare-spawn alert has not yet been verified in a live encounter.
 
-## Eight simple controls
+## Ten compact controls
 
 | Control | What it does |
 |:---|:---|
+| ❤️ **Snack Heart** | Above the wardrobe: click the hollow heart to feed your companion; it fills briefly during the animation |
 | 🌈 **Wardrobe** | Cycle all seven companion looks; button color shows your current selection. Use `/sb wardrobe` for the full 3D preview menu |
 | 🔵 **Auto** | Navigate automatically; return to Pet position at the destination |
 | 🟢 **Chase** | Follow the current navigation route |
@@ -64,6 +67,7 @@ The small **color-changing wardrobe button above Auto** cycles through these loo
 | 🟠 **SparkleRadar** | Switch mouseover identification on or off independently |
 | ⚫ **Off** | Turn off both SparkleButt and SparkleRadar |
 | ⚪ **SparkleBag** | While your personal bank is open, deposit inventory items whose item types were already in your bank |
+| 💜 **SparkleWand** | Plum-purple toggle below SparkleBag; enables or disables right-click wand shooting for wand-equipped classes |
 
 ## Your adventure, your destination: custom waypoints 📍
 
@@ -80,6 +84,18 @@ Open your **personal bank** and click the **silver SparkleBag control**, immedia
 **Only item types already stored in the bank when you press the button qualify.** Unmatched inventory items stay in your bags. SparkleBag uses existing bank stacks or available bank slots as the game permits, and stops quietly when no more eligible transfers remain. It also stops if the bank closes or an item fails to leave inventory.
 
 **Test status:** Multiple matching stacks were successfully deposited with one click in WoW Forever using v0.6.37. This is a newly tested feature; please report unusual banking behavior. SparkleBag does not automatically run merely because you open the bank.
+
+## SparkleWand: right-click wand shooting 💜
+
+The **plum-purple control immediately below SparkleBag** toggles SparkleWand independently from SparkleButt’s navigation modes. When enabled and a wand is equipped, **right-clicking a hostile mouseover target initiates the wand’s Shoot attack** instead of the normal melee right-click. It is intended for wand-using **Mages, Priests, and Warlocks**. A dim plum button indicates the feature is off; your on/off choice is saved between sessions.
+
+**Combat behavior:** In-game testing of v0.6.46 confirmed that SparkleWand works, including the spell-interruption scenario that motivated its development. The addon uses secure bindings, so **changing the toggle during combat may not take effect until combat ends**. The actual wand attack still depends on game mechanics, range, and having a usable wand equipped.
+
+**Important:** Disable or remove **AutoWand** (and other addons that override right-click / `BUTTON2`) before using SparkleWand. They can conflict with the same right-click binding.
+
+## Snack Heart: a treat in one click ❤️
+
+The **small hollow pink heart above the wardrobe color button** triggers the existing companion snack animation. Click once to give SparkleButt a treat and enjoy the accompanying hearts and chat reactions. The heart fills while the animation plays, then returns to a hollow outline so you can feed him again. Your companion needs to be enabled for snacks. The original `/sb snack` command still works.
 
 ## SparkleRadar, at a glance
 
@@ -105,7 +121,7 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 1. Install **Questie**, **QuestieDB**, and the **original StarfallTrail** from its creator; apply the separately provided SparkleButt integration changes.
 2. Place `SparkleButt` in your WoW Forever `Interface/AddOns` directory.
-3. Reload the game (`/reload`) and use the in-game selector or commands below. The wardrobe cycle button is **above Auto**; the silver **SparkleBag** button is beneath **Off** and requires an open bank.
+3. Reload the game (`/reload`) and use the in-game selector or commands below. The **Snack Heart** sits above the wardrobe cycle button; the wardrobe button sits above **Auto**. The silver **SparkleBag** button is beneath **Off** and requires an open bank. The plum-purple **SparkleWand** button sits immediately below SparkleBag.
 
 ```text
 /sb wardrobe             Open the seven-companion 3D preview menu
@@ -130,10 +146,12 @@ Install all three dependencies before using SparkleButt's quest navigation:
 - **Wardrobe preview uses an in-game model frame:** colors and light levels can look different from the flying companion in the world.
 - **Target range is approximate:** labels indicate tested range thresholds, **not exact yards**.
 - **Mouseover-only Radar:** players and creatures are supported; herb, mining, and chest identification is **not included** in this release.
+- **SparkleWand:** Disable AutoWand and other conflicting right-click binding addons; combat lockdown defers toggle binding updates until combat ends.
+- **Snack Heart:** Requires an active companion, and `/sb snack` remains available.
 - **StarfallTrail is required.** Our integration allows navigation calculations to continue when its visible ground trail is turned off and supplies the custom-waypoint bridge.
 - **SparkleBag requires an open personal bank** and available bank capacity; it will not deposit item types absent from the bank at the start of the action.
 - **Treasure Nose is shelved:** no autonomous gathering-node tracking is claimed.
-- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, one-click SparkleBag deposits, all seven companion models, and the wardrobe preview; rare-spawn alerts still need verification.
+- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, one-click SparkleBag deposits, all seven companion models, the wardrobe preview, the Snack Heart, and SparkleWand right-click attacks; rare-spawn alerts still need verification.
 
 ## Credits & collaboration
 
