@@ -4,11 +4,11 @@
 
 ### A little emerald dragon. A surprisingly capable traveling companion.
 
-**Quest navigation · Custom map waypoints · SparkleRadar · Target range · Snacks**
+**Quest navigation · Custom map waypoints · SparkleRadar · Player interaction · SparkleBag · Snacks**
 
 *An accessibility-minded companion addon built for WoW Forever, powered by StarfallTrail navigation.*
 
-**Current build:** v0.6.25 · **WoW Forever interface:** 16001
+**Current build:** v0.6.37 (SparkleBag test build) · **WoW Forever interface:** 16001
 
 </div>
 
@@ -29,10 +29,12 @@ SparkleButt is a small animated dragon that stays with your character, helps gui
 | **Alt + left-click** anywhere on your world map to set a custom destination. SparkleButt leads you there, then returns to your quest route. | A yellow quest indicator flags mouseover creatures with **readable, unfinished** quest objectives. |
 | 💚 **A bit of personality** | ✨ **A smooth little flyer** |
 | Give him a snack with `/sb snack` and watch his little animation. | SparkleButt flies between guiding and Pet positions rather than abruptly teleporting. |
+| 🪙 **SparkleBag** | 💬 **Player interactions** |
+| Open your bank and press the silver SparkleBag control **once** to deposit matching items from your backpack and equipped bags. | Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. |
 
 > **Rare & elite alerts:** Special alerts are implemented, but the rare-spawn alert has not yet been verified in a live encounter.
 
-## Six simple controls
+## Seven simple controls
 
 | Control | What it does |
 |:---|:---|
@@ -42,6 +44,7 @@ SparkleButt is a small animated dragon that stays with your character, helps gui
 | 📏 **Target Range** | Cycle the range label **Above → Below → Off** |
 | 🟠 **SparkleRadar** | Switch mouseover identification on or off independently |
 | ⚫ **Off** | Turn off both SparkleButt and SparkleRadar |
+| ⚪ **SparkleBag** | While your personal bank is open, deposit inventory items whose item types were already in your bank |
 
 ## Your adventure, your destination: custom waypoints 📍
 
@@ -51,11 +54,23 @@ When you arrive, the custom waypoint clears and **normal quest navigation resume
 
 You can also enter a location manually with `/sb waypoint MAPID X Y` (map ID and percentage coordinates). The feature requires the included **StarfallTrail integration changes**; the unmodified StarfallTrail addon alone does not provide this custom-waypoint bridge.
 
+## SparkleBag: one-click bank deposits 🪙
+
+Open your **personal bank** and click the **silver SparkleBag control**, immediately below **Off** in SparkleButt’s selector. SparkleBag checks your bank, then automatically tries to deposit matching items from your **backpack and bags 1–4**, one stack at a time, from a single button press.
+
+**Only item types already stored in the bank when you press the button qualify.** Unmatched inventory items stay in your bags. SparkleBag uses existing bank stacks or available bank slots as the game permits, and stops quietly when no more eligible transfers remain. It also stops if the bank closes or an item fails to leave inventory.
+
+**Test status:** Multiple matching stacks were successfully deposited with one click in WoW Forever using v0.6.37. This is a newly tested feature; please report unusual banking behavior. SparkleBag does not automatically run merely because you open the bank.
+
 ## SparkleRadar, at a glance
 
 Hover over a character or creature and SparkleButt can print its name, level (`Lv`), and available type/class information. Players use familiar WoW class colors; hostile and friendly creatures use reaction coloring. Different creatures with the same name are tracked separately where unit GUIDs are available.
 
 **Quest objective?** A yellow indicator appears before the name when an unfinished objective is readable. **Quest already complete?** No quest indicator.
+
+**Player interaction:** Right-click a player’s name in a SparkleRadar chat message to open WoW Forever’s normal player interaction menu. Choose **Whisper** to address the full displayed player name. Player menus and full-name whispers have been verified in game.
+
+**Creatures:** Creature names are informational rather than clickable menu links. The native creature menu required a currently targeted creature in testing, so the experimental chat-menu feature was removed.
 
 Radar **does not** automatically scan the world for nearby rare spawns: it identifies units you actually mouse over.
 
@@ -71,7 +86,7 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 1. Install **Questie**, **QuestieDB**, and the **original StarfallTrail** from its creator; apply the separately provided SparkleButt integration changes.
 2. Place `SparkleButt` in your WoW Forever `Interface/AddOns` directory.
-3. Reload the game (`/reload`) and use the in-game selector or commands below.
+3. Reload the game (`/reload`) and use the in-game selector or commands below. The silver **SparkleBag** button is beneath **Off**; open a bank before pressing it.
 
 ```text
 /sb auto                 Automatic navigation
@@ -94,8 +109,9 @@ Install all three dependencies before using SparkleButt's quest navigation:
 - **Target range is approximate:** labels indicate tested range thresholds, **not exact yards**.
 - **Mouseover-only Radar:** players and creatures are supported; herb, mining, and chest identification is **not included** in this release.
 - **StarfallTrail is required.** Our integration allows navigation calculations to continue when its visible ground trail is turned off and supplies the custom-waypoint bridge.
+- **SparkleBag requires an open personal bank** and available bank capacity; it will not deposit item types absent from the bank at the start of the action.
 - **Treasure Nose is shelved:** no autonomous gathering-node tracking is claimed.
-- The current version is field-tested for normal navigation, Radar, and quest hints; rare-spawn alerts still need verification.
+- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, and one-click SparkleBag deposits; rare-spawn alerts still need verification.
 
 ## Credits & collaboration
 
