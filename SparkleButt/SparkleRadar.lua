@@ -1,4 +1,4 @@
--- SparkleRadar v0.2.7: solid quest marker for unfinished objectives.
+-- SparkleRadar v0.3.4: player menus and full-name whispers; creature labels are plain text.
 -- Formerly standalone SparkleRadar v0.1.1; no protected tooltip access.
 local addon = CreateFrame("Frame")
 local enabled = true
@@ -23,6 +23,20 @@ local function chat(message)
 end
 local function colorize(message, hex)
   return "|cff" .. hex .. message .. "|r"
+end
+-- Native WoW player hyperlinks support the game chat interaction behavior:
+-- left-click usually whispers, right-click usually opens the player menu.
+-- WoW Forever may use multiword player names. Prefer the complete name
+-- verified by the current unit tooltip when it extends UnitName().
+local function playerChatLink(targetName, shownName, hex)
+  if type(targetName) ~= "string" or targetName == "" then
+    return colorize(shownName, hex)
+  end
+  -- Keep chat link control characters out of untrusted names/tooltip labels.
+  local target = targetName:gsub("[|%[%]\r\n]", "")
+  local label = shownName:gsub("[|\r\n]", "")
+  if target == "" then return colorize(shownName, hex) end
+  return "|cff" .. hex .. "|Hplayer:" .. target .. "|h[" .. label .. "]|h|r"
 end
 local classColors = {
   WARRIOR="C79C6E", PALADIN="F58CBA", HUNTER="ABD473", ROGUE="FFF569",
@@ -156,7 +170,21 @@ local function inspectUnit()
   local levelText = (type(level) == "number" and level > 0) and ("Lv " .. tostring(level)) or "Lv ?"
   local descriptor = (isPlayer and (className or "Player")) or (creatureType or "NPC")
   local kind = (isRare and "RARE" or (isElite and "ELITE" or nil))
-  local output = (questRelevant and colorize("● ", "FFD100") or "") .. colorize(shownName, hex) .. " - " .. levelText .. " " .. descriptor
+  -- WoW Forever may display a character's full name (including spaces) in
+  -- the unit tooltip while UnitName() returns only its first token. The
+  -- shorter token cannot reliably address that character for whispers.
+  -- When the tooltip extends the base name, preserve the full visible name
+  -- in the native player hyperlink payload as well as the chat label.
+  local linkName = name
+  if isPlayer and type(shownName) == "string" and shownName ~= "" then
+    local cleanShown = shownName:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    cleanShown = cleanShown:match("^%s*(.-)%s*$") or cleanShown
+    if cleanShown == name or cleanShown:sub(1, #name + 1) == name .. " " then
+      linkName = cleanShown
+    end
+  end
+  local displayName = isPlayer and playerChatLink(linkName, shownName, hex) or colorize(shownName, hex)
+  local output = (questRelevant and colorize("● ", "FFD100") or "") .. displayName .. " - " .. levelText .. " " .. descriptor
   if kind then
     local alertColor = isRare and "FFD166" or "FF9B46"
     local title = isRare and "RARE SPOTTED" or "ELITE"
@@ -171,7 +199,7 @@ addon:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "SparkleButt" then
     if type(SparkleButtDB) ~= "table" then SparkleButtDB = {} end
     if SparkleButtDB.radarEnabled == false then enabled = false end
-    chat("integrated v0.2.7 ready - completed quests excluded; /sb radar on | off | questprobe")
+    chat("integrated v0.3.4: player menus and full-name whispers active")
   elseif event == "UPDATE_MOUSEOVER_UNIT" then
     inspectUnit()
   end
@@ -231,7 +259,7 @@ local function RadarCommand(input)
     lastObjectText = nil
     chat("Radar history cleared.")
   elseif cmd == "status" or cmd == "help" then
-    chat((enabled and "ON" or "OFF") .. " - /sb radar on | off | reset | probe | questprobe")
+    chat((enabled and "ON" or "OFF") .. " - /sb radar on | off | reset | probe | questprobe; right-click a player name in chat for the native menu")
   else
     chat("Unknown command; use /sb radar help")
   end
