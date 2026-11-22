@@ -2,7 +2,7 @@
 
 # SparkleButt 🐉
 
-### Seven surprisingly capable magical traveling companion.
+### Seven surprisingly capable magical traveling companions.
 
 **Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · SparkleBag · Custom waypoints · Snacks**
 
