@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="Media/dragon.png" alt="SparkleButt, the emerald dragon companion" width="210" />
-
 # SparkleButt 🐉
 
 ### A little emerald dragon. A surprisingly capable traveling companion.
