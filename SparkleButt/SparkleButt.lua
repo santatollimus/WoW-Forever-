@@ -6,7 +6,7 @@ local WHELP_DISPLAY = 6291
 local PI2 = math.pi * 2
 local floor, abs, min, max = math.floor, math.abs, math.min, math.max
 local sin, cos, exp = math.sin, math.cos, math.exp
-local defaults = { enabled=true, mode="3d", scale=1, displayID=WHELP_DISPLAY,
+local defaults = { enabled=true, mode="3d", scale=1, displayID=WHELP_DISPLAY, appearanceTint={0.12,1,0.22},
     compass=true, chase=true, ahead=12, lift=3, reverse=false, test=false, x=0, y=-110, burst=true, smooth=5, chaseSmooth=7, selectorX=-18, selectorY=-145, selectorVisible=true, faceTurns=true, faceFlip=false, faceEase=7, petSide="right", autoMode=false, textPosition="off" }
 local db, holder, sprite, model, sparks, burstSparks, emeraldHalo, driver
 local clock, ticker, bearingX, lastSide = 0, 0, 0, 1
@@ -22,7 +22,7 @@ local autoAtDestination=false -- session state, never inferred from screen posit
 local autoRouteSeenFor=0 -- debounce reactivation after arrival
 local flightTransition=nil -- purely visual, never used as arrival detection
 local corpseRun=false -- temporary visual-only suspension; never changes saved navigation mode
-local selector, modeButtons, distanceLabel, textButton
+local selector, modeButtons, distanceLabel, textButton, wardrobeButton
 local UpdateTextUI
 local snack=nil -- temporary, visual-only interaction; navigation mode is preserved
 local snackHearts, snackTreat
@@ -248,6 +248,7 @@ local function SetModel()
         model:Hide(); sprite:Show()
     end
 end
+SparkleButtRefreshModel = SetModel
 local function Move(x)
     if not holder then return end
     holder:ClearAllPoints()
@@ -445,7 +446,7 @@ local function Build()
     emeraldHalo=holder:CreateTexture(nil,"BACKGROUND")
     emeraldHalo:SetTexture(MEDIA.."glow.tga")
     emeraldHalo:SetBlendMode("ADD")
-    emeraldHalo:SetVertexColor(0.12,1,0.22)
+    emeraldHalo:SetVertexColor(unpack(db.appearanceTint or {0.12,1,0.22}))
     emeraldHalo:SetPoint("CENTER",holder,"CENTER",0,5)
     emeraldHalo:SetSize(145,145)
     emeraldHalo:SetAlpha(0)
@@ -623,11 +624,16 @@ local function Build()
         local bob=5*sin(clock*2.2)
         sprite:ClearAllPoints(); sprite:SetPoint("CENTER",self,"CENTER",0,bob)
         model:ClearAllPoints(); model:SetPoint("CENTER",self,"CENTER",0,bob)
+        -- Wisps already have a very bright intrinsic model glow.
+        -- Suppress SparkleButt's additive aura and sparks for Wisps only.
+        local wardrobeGlowScale=(db.appearance=="wisp") and 0 or 1
+        -- A modest boost for Crimson and Azure; all other models keep their current strength.
+        local appearanceGlowBoost=(db.appearance=="azure") and 1.45 or ((db.appearance=="crimson") and 1.15 or 1)
         for i,t in ipairs(sparks) do
             local p=(clock*0.4+i/#sparks)%1
             t:ClearAllPoints()
             t:SetPoint("CENTER",self,"CENTER",-34-50*p,-10-18*p+6*sin(clock*3+i*1.7))
-            t:SetAlpha((1-p)*0.75)
+            t:SetAlpha(min(1,(1-p)*0.75*wardrobeGlowScale*appearanceGlowBoost))
             local s=5+10*(1-p); t:SetSize(s,s)
         end
         -- The green grows stronger as you align to the route, fading gently
@@ -635,15 +641,20 @@ local function Build()
         local shown=holder:IsShown() and db.enabled and (db.compass or not db.chase)
         local strength=shown and alignmentGlow or 0
         if emeraldHalo then
-            emeraldHalo:SetAlpha(db.burst and strength*0.72 or 0)
+            -- Azure needs a visible blue aura even when not facing the route; keep its existing hue.
+            -- Other companions retain their original direction-driven halo behavior.
+            local azureBaseHalo=(db.appearance=="azure" and shown) and 0.32 or 0
+            emeraldHalo:SetAlpha(db.burst and min(1,(azureBaseHalo+strength*0.72)*wardrobeGlowScale*appearanceGlowBoost) or 0)
             local sz=132+18*strength+7*sin(clock*3)
             emeraldHalo:SetSize(sz,sz)
         end
+        local tint=db.appearanceTint or {0.12,1,0.22}
+        if emeraldHalo then emeraldHalo:SetVertexColor(tint[1],tint[2],tint[3]) end
         for i,t in ipairs(sparks) do
-            t:SetVertexColor(0.4+0.18*strength,0.9+0.1*strength,0.42+0.1*strength)
+            t:SetVertexColor(min(1,tint[1]*0.85+0.18*strength),min(1,tint[2]*0.85+0.15*strength),min(1,tint[3]*0.85+0.15*strength))
             if db.burst then
                 local p=(clock*0.4+i/#sparks)%1
-                t:SetAlpha((1-p)*(0.25+0.75*strength))
+                t:SetAlpha(min(1,(1-p)*(0.25+0.75*strength)*wardrobeGlowScale*appearanceGlowBoost))
             end
         end
         local age=clock-burstStarted
@@ -654,8 +665,8 @@ local function Build()
                 local radius=14+56*spread
                 t:ClearAllPoints()
                 t:SetPoint("CENTER",self,"CENTER",radius*cos(a),radius*sin(a)+5)
-                t:SetVertexColor(0.35,1,0.35)
-                t:SetAlpha((1-spread)*0.75)
+                t:SetVertexColor(tint[1],tint[2],tint[3])
+                t:SetAlpha(min(1,(1-spread)*0.75*wardrobeGlowScale*appearanceGlowBoost))
                 t:SetSize(4+10*(1-spread),4+10*(1-spread))
             else
                 t:SetAlpha(0)
@@ -830,7 +841,7 @@ local function Build()
 end
 
 
--- Seven-position selector: Auto, Chase, Pet, Target Range, Radar, Off, SparkleBag.
+-- Wardrobe cycle above the existing selector: Auto, Chase, Pet, Target Range, Radar, Off, SparkleBag.
 -- Its position and selected mode are saved in SparkleButtDB.
 local buttonDefinitions = {
     { key="auto",    label="Auto",    rgb={0.18,0.44,0.82} },
@@ -948,14 +959,14 @@ end
 local function BuildSelector()
     if selector then return end
     selector=CreateFrame("Frame","SparkleButtModeSelector",UIParent)
-    selector:SetSize(20,155)
+    selector:SetSize(20,176)
     selector:SetFrameStrata("DIALOG")
     selector:SetClampedToScreen(true)
     selector:SetMovable(true)
     selector:EnableMouse(true)
     selector:RegisterForDrag("LeftButton")
     selector:SetPoint("TOPRIGHT",UIParent,"TOPRIGHT",db.selectorX,db.selectorY)
-    -- No tray or rectangular backing: seven circular controls render.
+    -- No tray or rectangular backing: wardrobe plus seven original circular controls.
     selector:SetScript("OnDragStart",function(self) self:StartMoving() end)
     local function SavePosition(self)
         self:StopMovingOrSizing()
@@ -970,12 +981,42 @@ local function BuildSelector()
     end
     selector:SetScript("OnDragStop",SavePosition)
     modeButtons={}
+    -- The top dot cycles: Emerald -> Crimson -> Azure -> Dark -> Bronze -> Wisp -> Sprite -> Emerald.
+    wardrobeButton=CreateFrame("Button",nil,selector)
+    wardrobeButton:SetSize(18,18)
+    wardrobeButton:SetPoint("TOP",selector,"TOP",0,-7)
+    wardrobeButton:RegisterForClicks("LeftButtonUp")
+    wardrobeButton:RegisterForDrag("LeftButton","RightButton")
+    wardrobeButton:SetScript("OnMouseDown",function(self) self.didDrag=false end)
+    wardrobeButton:SetScript("OnDragStart",function(self) self.didDrag=true; selector:StartMoving() end)
+    wardrobeButton:SetScript("OnDragStop",function() SavePosition(selector) end)
+    wardrobeButton:SetScript("OnClick",function(self)
+        if self.didDrag then self.didDrag=false; return end
+        if type(SparkleButtWardrobeCycle)=="function" then SparkleButtWardrobeCycle()
+        else Say("Wardrobe module unavailable. Check SparkleWardrobe.lua.") end
+    end)
+    wardrobeButton:SetScript("OnEnter",function(self)
+        local name="Emerald Whelp"
+        if type(SparkleButtWardrobeGetCurrent)=="function" then
+            local currentKey,currentName=SparkleButtWardrobeGetCurrent()
+            name=currentName or name
+        end
+        GameTooltip:SetOwner(self,"ANCHOR_LEFT")
+        GameTooltip:SetText("Companion: "..(name or "Emerald Whelp"),1,1,1)
+        GameTooltip:AddLine("Click to cycle appearances. /sb wardrobe opens the full list.",0.8,0.8,0.8,true)
+        GameTooltip:Show()
+    end)
+    wardrobeButton:SetScript("OnLeave",function() GameTooltip:Hide() end)
+    wardrobeButton.disc=wardrobeButton:CreateTexture(nil,"ARTWORK")
+    wardrobeButton.disc:SetSize(9,9)
+    wardrobeButton.disc:SetPoint("CENTER")
+    wardrobeButton.disc:SetTexture(MEDIA.."mode_circle.tga")
     for i,def in ipairs(buttonDefinitions) do
         local button=CreateFrame("Button",nil,selector)
         button:SetSize(18,18) -- Invisible 18px click target; visual circle is 9px (75% smaller).
         -- Slot 4 is reserved for the independent target-range control.
         local slot=(i<=3) and i or (i+1)
-        button:SetPoint("TOP",selector,"TOP",0,-7-(slot-1)*21)
+        button:SetPoint("TOP",selector,"TOP",0,-7-slot*21)
         button:RegisterForClicks("LeftButtonUp")
         button:RegisterForDrag("LeftButton", "RightButton")
         button:SetScript("OnMouseDown",function(self) self.didDrag=false end)
@@ -1009,7 +1050,7 @@ local function BuildSelector()
     end
     textButton=CreateFrame("Button",nil,selector)
     textButton:SetSize(18,18)
-    textButton:SetPoint("TOP",selector,"TOP",0,-7-3*21)
+    textButton:SetPoint("TOP",selector,"TOP",0,-7-4*21)
     textButton:RegisterForClicks("LeftButtonUp")
     textButton:RegisterForDrag("LeftButton","RightButton")
     textButton:SetScript("OnMouseDown",function(self) self.didDrag=false end)
@@ -1039,6 +1080,15 @@ local function BuildSelector()
 end
 UpdateModeUI=function()
     if not modeButtons then return end
+    if wardrobeButton and wardrobeButton.disc then
+        local tint
+        if type(SparkleButtWardrobeGetCurrent)=="function" then
+            local key,name,currentTint=SparkleButtWardrobeGetCurrent()
+            tint=currentTint
+        end
+        if tint then wardrobeButton.disc:SetVertexColor(unpack(tint))
+        else wardrobeButton.disc:SetVertexColor(0.12,1,0.22) end
+    end
     local mode=CurrentMode()
     for i,def in ipairs(buttonDefinitions) do
         local b=modeButtons[i]
@@ -1099,6 +1149,7 @@ events:SetScript("OnEvent",function(_,event,name)
     if event=="ADDON_LOADED" and name==ADDON then InitDB() end
     if event=="PLAYER_LOGIN" then
         if not db then InitDB() end
+        if type(SparkleButtWardrobeSyncGlow)=="function" then SparkleButtWardrobeSyncGlow() end
         Build()
         BuildSelector()
         -- Auto resumes in its saved mode; reconcile to live route on login.
@@ -1110,7 +1161,7 @@ events:SetScript("OnEvent",function(_,event,name)
             autoRouteSeenFor=0
             if not db.chase then Move(0) end
         end
-        Say("v0.6.37 ready - SparkleBag quiet one-stack deposits; radar remains independent.")
+        Say("v0.6.45 Wardrobe Preview TEST ready. Click the top dot to cycle, or /sb wardrobe for the menu.")
     end
 end)
 
@@ -1119,6 +1170,16 @@ SLASH_SPARKLEBUTT2="/sparklebutt"
 SlashCmdList.SPARKLEBUTT=function(input)
     if not db then InitDB() end
     local cmd,arg=(input or ""):lower():match("^(%S*)%s*(.-)%s*$")
+    if cmd=="wardrobe" or cmd=="looks" then
+        if type(SparkleButtWardrobeOpen)=="function" then SparkleButtWardrobeOpen()
+        else Say("Wardrobe module missing; check SparkleWardrobe.lua.") end
+        return
+    end
+    if cmd=="look" then
+        if type(SparkleButtWardrobeSelect)=="function" then SparkleButtWardrobeSelect(arg)
+        else Say("Wardrobe module missing; check SparkleWardrobe.lua.") end
+        return
+    end
     if cmd=="radar" then
         if type(SparkleButtRadarCommand)=="function" then
             SparkleButtRadarCommand(arg)
@@ -1213,7 +1274,7 @@ SlashCmdList.SPARKLEBUTT=function(input)
         burstStarted=clock
         previewUntil=clock+2.5
         alignmentGlow=1
-        Say("Emerald glow preview (no text).")
+        Say("Companion glow preview (no text).")
         return
     elseif cmd=="sparkles" or cmd=="burst" then
         if arg=="on" then db.burst=true
@@ -1263,6 +1324,7 @@ SlashCmdList.SPARKLEBUTT=function(input)
         return
     else
         Say("Alt+left-click the world map to set a destination; /sb clear to cancel; /sb waypoint MAPID X Y manually.")
+        Say("/sb wardrobe | /sb look emerald|crimson|azure|dark|bronze|wisp|sprite")
         Say("/sb radar on|off|status|reset | /sb text [above/below/off] | snack | auto | chase | pet | petside left/right | status | off")
         return
     end
