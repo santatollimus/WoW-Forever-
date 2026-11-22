@@ -2,13 +2,13 @@
 
 # SparkleButt 🐉
 
-### A little emerald dragon. A surprisingly capable traveling companion.
+### Seven magical companions. One surprisingly capable traveling companion.
 
-**Quest navigation · Custom map waypoints · SparkleRadar · Player interaction · SparkleBag · Snacks**
+**Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · SparkleBag · Custom waypoints · Snacks**
 
 *An accessibility-minded companion addon built for WoW Forever, powered by StarfallTrail navigation.*
 
-**Current build:** v0.6.37 (SparkleBag test build) · **WoW Forever interface:** 16001
+**Current build:** v0.6.45 (Wardrobe Preview test build) · **WoW Forever interface:** 16001
 
 </div>
 
@@ -16,9 +16,9 @@
 
 ## Meet your new co-pilot
 
-SparkleButt is a small animated dragon that stays with your character, helps guide you along quest routes, and makes it easier to identify the creatures around you without clicking through every target. He even comes down for a snack.
+SparkleButt is a small animated magical companion that stays with your character, helps guide you along quest routes, and makes it easier to identify the creatures around you without clicking through every target. Choose from dragon whelps, a Wisp, or a Sprite Darter. Your companion even comes down for a snack.
 
-### What he can do
+### What your companion can do
 
 | 🧭 **Find your way** | 🐉 **Stay by your side** |
 |:---|:---|
@@ -32,12 +32,31 @@ SparkleButt is a small animated dragon that stays with your character, helps gui
 | 🪙 **SparkleBag** | 💬 **Player interactions** |
 | Open your bank and press the silver SparkleBag control **once** to deposit matching items from your backpack and equipped bags. | Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. |
 
+### Meet the companion wardrobe
+
+**Seven appearances, one familiar companion system.** Open the full wardrobe with `/sb wardrobe`, where you can select a look and see a **live, front-facing 3D model preview** with a matching glow effect. Your selected look is saved for future sessions.
+
+| Companion | Appearance and aura |
+|:---|:---|
+| 🟢 **Emerald Whelp** | The original little green dragon and green glow |
+| 🔴 **Crimson Whelp** | Red dragon with a vivid red glow |
+| 🔵 **Azure Whelp** | Blue dragon with a stronger, cool azure glow |
+| ⚫ **Dark Whelp** | Dark dragon with warm orange glow |
+| 🟤 **Bronze Whelp** | Bronze-colored dragon with light golden glow |
+| 🔹 **Wisp** | Bright magical spirit with **natural model illumination**; the model is especially luminous |
+| 🌸 **Sprite Darter** | Colorful faerie dragon with pink glow |
+
+The small **color-changing wardrobe button above Auto** cycles through these looks in that exact order and returns to Emerald after Sprite Darter. Its indicator colors are deliberately separate from the glow colors. The wardrobe preview is a helpful approximation; real-world lighting may differ from the preview window.
+
+**Wardrobe status:** All seven model choices and the 3D preview were tested visually in WoW Forever in v0.6.45. The Wisp remains much brighter than the other models due to its native illumination.
+
 > **Rare & elite alerts:** Special alerts are implemented, but the rare-spawn alert has not yet been verified in a live encounter.
 
-## Seven simple controls
+## Eight simple controls
 
 | Control | What it does |
 |:---|:---|
+| 🌈 **Wardrobe** | Cycle all seven companion looks; button color shows your current selection. Use `/sb wardrobe` for the full 3D preview menu |
 | 🔵 **Auto** | Navigate automatically; return to Pet position at the destination |
 | 🟢 **Chase** | Follow the current navigation route |
 | 🟡 **Pet** | Stay next to your character |
@@ -86,9 +105,11 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 1. Install **Questie**, **QuestieDB**, and the **original StarfallTrail** from its creator; apply the separately provided SparkleButt integration changes.
 2. Place `SparkleButt` in your WoW Forever `Interface/AddOns` directory.
-3. Reload the game (`/reload`) and use the in-game selector or commands below. The silver **SparkleBag** button is beneath **Off**; open a bank before pressing it.
+3. Reload the game (`/reload`) and use the in-game selector or commands below. The wardrobe cycle button is **above Auto**; the silver **SparkleBag** button is beneath **Off** and requires an open bank.
 
 ```text
+/sb wardrobe             Open the seven-companion 3D preview menu
+/sb look azure           Select a look by name (e.g., emerald, crimson, azure)
 /sb auto                 Automatic navigation
 /sb chase                Follow the current route
 /sb pet                  Stay beside the player
@@ -106,12 +127,13 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 ## Good to know
 
+- **Wardrobe preview uses an in-game model frame:** colors and light levels can look different from the flying companion in the world.
 - **Target range is approximate:** labels indicate tested range thresholds, **not exact yards**.
 - **Mouseover-only Radar:** players and creatures are supported; herb, mining, and chest identification is **not included** in this release.
 - **StarfallTrail is required.** Our integration allows navigation calculations to continue when its visible ground trail is turned off and supplies the custom-waypoint bridge.
 - **SparkleBag requires an open personal bank** and available bank capacity; it will not deposit item types absent from the bank at the start of the action.
 - **Treasure Nose is shelved:** no autonomous gathering-node tracking is claimed.
-- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, and one-click SparkleBag deposits; rare-spawn alerts still need verification.
+- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, one-click SparkleBag deposits, all seven companion models, and the wardrobe preview; rare-spawn alerts still need verification.
 
 ## Credits & collaboration
 
