@@ -22,7 +22,7 @@ local autoAtDestination=false -- session state, never inferred from screen posit
 local autoRouteSeenFor=0 -- debounce reactivation after arrival
 local flightTransition=nil -- purely visual, never used as arrival detection
 local corpseRun=false -- temporary visual-only suspension; never changes saved navigation mode
-local selector, modeButtons, distanceLabel, textButton, wardrobeButton
+local selector, modeButtons, distanceLabel, textButton, wardrobeButton, snackButton
 local UpdateTextUI
 local snack=nil -- temporary, visual-only interaction; navigation mode is preserved
 local snackHearts, snackTreat
@@ -850,6 +850,7 @@ local buttonDefinitions = {
     { key="radar", label="SparkleRadar (click to toggle on/off)", rgb={1.00,0.46,0.06} },
     { key="off",     label="Off",     rgb={0.94,0.24,0.26} },
     { key="bag",     label="SparkleBag: deposit inventory items already in your bank (requires open bank)", rgb={0.80,0.84,0.90} },
+    { key="wand",    label="SparkleWand: right-click wand attacks (click to toggle)", rgb={0.57,0.30,0.72} },
 }
 local function CurrentMode()
     if not db or not db.enabled then return "off" end
@@ -874,6 +875,12 @@ local function ApplyMode(key)
     local oldX,oldY
     if holder and wasEnabled and holder:IsShown() then
         oldX,oldY=holder:GetCenter()
+    end
+    if key=="wand" then
+        if type(SparkleWandToggle)=="function" then SparkleWandToggle()
+        else Say("SparkleWand module unavailable. Check SparkleWand.lua.") end
+        if UpdateModeUI then UpdateModeUI() end
+        return
     end
     -- SparkleBag is an independent bank action, not a navigation mode.
     if key=="bag" then
@@ -959,7 +966,7 @@ end
 local function BuildSelector()
     if selector then return end
     selector=CreateFrame("Frame","SparkleButtModeSelector",UIParent)
-    selector:SetSize(20,176)
+    selector:SetSize(20,200)
     selector:SetFrameStrata("DIALOG")
     selector:SetClampedToScreen(true)
     selector:SetMovable(true)
@@ -981,6 +988,41 @@ local function BuildSelector()
     end
     selector:SetScript("OnDragStop",SavePosition)
     modeButtons={}
+    -- Snack sits directly above the wardrobe dot. The hollow outline fills
+    -- during the snack sequence and returns to hollow when feeding ends.
+    snackButton=CreateFrame("Button",nil,selector)
+    snackButton:SetSize(19,19)
+    snackButton:SetPoint("TOP",selector,"TOP",0,17)
+    snackButton:RegisterForClicks("LeftButtonUp")
+    snackButton:RegisterForDrag("LeftButton","RightButton")
+    snackButton:SetScript("OnMouseDown",function(self) self.didDrag=false end)
+    snackButton:SetScript("OnDragStart",function(self) self.didDrag=true; selector:StartMoving() end)
+    snackButton:SetScript("OnDragStop",function() SavePosition(selector) end)
+    snackButton.outline=snackButton:CreateTexture(nil,"ARTWORK")
+    snackButton.outline:SetSize(14,14)
+    snackButton.outline:SetPoint("CENTER")
+    snackButton.outline:SetTexture(MEDIA.."heart_outline.tga")
+    snackButton.outline:SetVertexColor(1,0.52,0.71)
+    snackButton.fill=snackButton:CreateTexture(nil,"OVERLAY")
+    snackButton.fill:SetSize(14,14)
+    snackButton.fill:SetPoint("CENTER")
+    snackButton.fill:SetTexture(MEDIA.."heart.tga")
+    snackButton.fill:Hide()
+    snackButton:SetScript("OnClick",function(self)
+        if self.didDrag then self.didDrag=false; return end
+        if not snack then StartSnack() end
+        if snack then self.fill:Show() end
+    end)
+    snackButton:SetScript("OnUpdate",function(self)
+        if snack then self.fill:Show() else self.fill:Hide() end
+    end)
+    snackButton:SetScript("OnEnter",function(self)
+        GameTooltip:SetOwner(self,"ANCHOR_LEFT")
+        GameTooltip:SetText("Give SparkleButt a snack",1,1,1)
+        GameTooltip:AddLine("Click to start the snack animation.",0.8,0.8,0.8)
+        GameTooltip:Show()
+    end)
+    snackButton:SetScript("OnLeave",function() GameTooltip:Hide() end)
     -- The top dot cycles: Emerald -> Crimson -> Azure -> Dark -> Bronze -> Wisp -> Sprite -> Emerald.
     wardrobeButton=CreateFrame("Button",nil,selector)
     wardrobeButton:SetSize(18,18)
@@ -1093,7 +1135,11 @@ UpdateModeUI=function()
     for i,def in ipairs(buttonDefinitions) do
         local b=modeButtons[i]
         local active=(mode==def.key)
-        if def.key=="bag" then
+        if def.key=="wand" then
+            local wandOn=type(SparkleWandIsEnabled)=="function" and SparkleWandIsEnabled()
+            if wandOn then b.disc:SetVertexColor(unpack(def.rgb))
+            else b.disc:SetVertexColor(0.29,0.22,0.35,1) end
+        elseif def.key=="bag" then
             -- Always silver: bank transfers are actions, never navigation modes.
             b.disc:SetVertexColor(unpack(def.rgb))
         elseif def.key=="radar" then
@@ -1161,7 +1207,7 @@ events:SetScript("OnEvent",function(_,event,name)
             autoRouteSeenFor=0
             if not db.chase then Move(0) end
         end
-        Say("v0.6.45 Wardrobe Preview TEST ready. Click the top dot to cycle, or /sb wardrobe for the menu.")
+        Say("v0.6.46 Snack Heart + SparkleWand TEST ready. Click the top dot to cycle, or /sb wardrobe for the menu.")
     end
 end)
 
