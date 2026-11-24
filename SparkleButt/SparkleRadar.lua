@@ -1,4 +1,4 @@
--- SparkleRadar v0.3.4: player menus and full-name whispers; creature labels are plain text.
+-- SparkleRadar v0.3.5: paired classification circles; quest circles preserved.
 -- Formerly standalone SparkleRadar v0.1.1; no protected tooltip access.
 local addon = CreateFrame("Frame")
 local enabled = true
@@ -24,6 +24,21 @@ end
 local function colorize(message, hex)
   return "|cff" .. hex .. message .. "|r"
 end
+-- The plain filled circle is already proven to render in WoW Forever chat.
+-- Do not use Unicode emoji or texture escapes for these alerts.
+local function radarDots(first, second)
+  return colorize("●", first) .. colorize("●", second)
+end
+local function classificationDecor(classification)
+  if classification == "rareelite" then
+    return "RARE ELITE SPOTTED", radarDots("AB64E8", "D7B5FF"), "AB64E8"
+  elseif classification == "rare" then
+    return "RARE SPOTTED", radarDots("C0C0C0", "F3F4F6"), "C0C0C0"
+  elseif classification == "elite" or classification == "worldboss" then
+    return "ELITE SPOTTED", radarDots("FF8A00", "FFD166"), "FF8A00"
+  end
+  return nil, nil, nil
+end
 -- Native WoW player hyperlinks support the game chat interaction behavior:
 -- left-click usually whispers, right-click usually opens the player menu.
 -- WoW Forever may use multiword player names. Prefer the complete name
@@ -46,7 +61,7 @@ local classColors = {
 local function reactionColor(unit)
   if type(UnitReaction) == "function" then
     local ok, value = pcall(UnitReaction, unit, "player")
-    if ok and type(value) == "number" then
+    if ok and not (type(issecretvalue) == "function" and issecretvalue(value)) and type(value) == "number" then
       if value <= 3 then return "FF4D4D" end
       if value == 4 then return "FFD35B" end
       return "69D875"
@@ -54,14 +69,17 @@ local function reactionColor(unit)
   end
   if type(UnitCanAttack) == "function" then
     local ok, result = pcall(UnitCanAttack, "player", unit)
-    if ok and result then return "FF4D4D" end
+    if ok and not (type(issecretvalue) == "function" and issecretvalue(result)) and result then return "FF4D4D" end
   end
   return "DFDFDF"
 end
 local function safe(f, ...)
   if type(f) ~= "function" then return nil end
   local ok, v = pcall(f, ...)
-  if ok then return v end
+  if ok then
+    if type(issecretvalue) == "function" and issecretvalue(v) then return nil end
+    return v
+  end
   return nil
 end
 -- World-object tooltip scanning disabled: caused duplicate NPC reports and noisy chat.
@@ -79,9 +97,9 @@ local function displayedUnitName(unit, baseName, guid, isPlayer)
     end
     if full == baseName and type(UnitFullName) == "function" then
       local ok, playerName, realm = pcall(UnitFullName, unit)
-      if ok and type(playerName) == "string" and playerName ~= "" then
+      if ok and not (type(issecretvalue) == "function" and issecretvalue(playerName)) and type(playerName) == "string" and playerName ~= "" then
         full = playerName
-        if type(realm) == "string" and realm ~= "" then full = full .. "-" .. realm end
+        if not (type(issecretvalue) == "function" and issecretvalue(realm)) and type(realm) == "string" and realm ~= "" then full = full .. "-" .. realm end
       end
     end
   end
@@ -141,13 +159,19 @@ local function inspectUnit()
   end
   lastObjectText = nil
   local name = safe(UnitName, "mouseover")
+  -- Secret names cannot be compared, concatenated, or used as table keys.
+  -- `safe` filters them before this check.
   if type(name) ~= "string" or name == "" then return end
   local guid = safe(UnitGUID, "mouseover")
   local level = safe(UnitLevel, "mouseover")
   local className, classToken
   if type(UnitClass) == "function" then
     local ok, n, t = pcall(UnitClass, "mouseover")
-    if ok then className, classToken = n, t end
+    if ok then
+      if type(issecretvalue) == "function" and issecretvalue(n) then n = nil end
+      if type(issecretvalue) == "function" and issecretvalue(t) then t = nil end
+      className, classToken = n, t
+    end
   end
   local isPlayer = safe(UnitIsPlayer, "mouseover")
   local classification = safe(UnitClassification, "mouseover")
@@ -163,13 +187,10 @@ local function inspectUnit()
   if guid and seen[guid] and now-seen[guid] < announceWindow then return end
   if guid then seen[guid] = now end
 
-  local isRare = classification == "rare" or classification == "rareelite"
-  local isElite = classification == "elite" or classification == "rareelite" or classification == "worldboss"
   local hex = reactionColor("mouseover")
   if isPlayer and classToken then hex = classColors[classToken] or hex end
   local levelText = (type(level) == "number" and level > 0) and ("Lv " .. tostring(level)) or "Lv ?"
   local descriptor = (isPlayer and (className or "Player")) or (creatureType or "NPC")
-  local kind = (isRare and "RARE" or (isElite and "ELITE" or nil))
   -- WoW Forever may display a character's full name (including spaces) in
   -- the unit tooltip while UnitName() returns only its first token. The
   -- shorter token cannot reliably address that character for whispers.
@@ -184,11 +205,15 @@ local function inspectUnit()
     end
   end
   local displayName = isPlayer and playerChatLink(linkName, shownName, hex) or colorize(shownName, hex)
-  local output = (questRelevant and colorize("● ", "FFD100") or "") .. displayName .. " - " .. levelText .. " " .. descriptor
-  if kind then
-    local alertColor = isRare and "FFD166" or "FF9B46"
-    local title = isRare and "RARE SPOTTED" or "ELITE"
-    output = colorize("✨ " .. title .. " ", alertColor) .. output .. colorize(" 🐉", alertColor)
+  local title, dots, alertColor = classificationDecor(classification)
+  local output = displayName .. " - " .. levelText .. " " .. descriptor
+  if title then
+    output = dots .. " " .. colorize(title, alertColor) .. " " .. output
+  end
+  -- Quest relevance is independent of creature classification. Keep the
+  -- established yellow circle on BOTH ends for any unfinished quest target.
+  if questRelevant then
+    output = colorize("● ", "FFD100") .. output .. colorize(" ●", "FFD100")
   end
   if dead then output = output .. " (dead)" end
   chat(output)
@@ -199,7 +224,7 @@ addon:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "SparkleButt" then
     if type(SparkleButtDB) ~= "table" then SparkleButtDB = {} end
     if SparkleButtDB.radarEnabled == false then enabled = false end
-    chat("integrated v0.3.4: player menus and full-name whispers active")
+    chat("integrated v0.3.5: paired rare/elite indicators active")
   elseif event == "UPDATE_MOUSEOVER_UNIT" then
     inspectUnit()
   end

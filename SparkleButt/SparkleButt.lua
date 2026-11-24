@@ -849,8 +849,9 @@ local buttonDefinitions = {
     { key="pet",     label="Pet",     rgb={0.98,0.76,0.18} },
     { key="radar", label="SparkleRadar (click to toggle on/off)", rgb={1.00,0.46,0.06} },
     { key="off",     label="Off",     rgb={0.94,0.24,0.26} },
-    { key="bag",     label="SparkleBag: deposit inventory items already in your bank (requires open bank)", rgb={0.80,0.84,0.90} },
     { key="wand",    label="SparkleWand: right-click wand attacks (click to toggle)", rgb={0.57,0.30,0.72} },
+    { key="panel",   label="Panel: engaged enemy bars (dark red = ON; /sb panel to move)", rgb={0.48,0.10,0.14} },
+    { key="bag",     label="SparkleBag: deposit inventory items already in your bank (requires open bank)", rgb={0.80,0.84,0.90} },
 }
 local function CurrentMode()
     if not db or not db.enabled then return "off" end
@@ -875,6 +876,12 @@ local function ApplyMode(key)
     local oldX,oldY
     if holder and wasEnabled and holder:IsShown() then
         oldX,oldY=holder:GetCenter()
+    end
+    if key=="panel" then
+        if type(SparkleButtPanelToggle)=="function" then SparkleButtPanelToggle()
+        else Say("SparklePanel module unavailable. Check SparklePanel.lua.") end
+        if UpdateModeUI then UpdateModeUI() end
+        return
     end
     if key=="wand" then
         if type(SparkleWandToggle)=="function" then SparkleWandToggle()
@@ -966,7 +973,7 @@ end
 local function BuildSelector()
     if selector then return end
     selector=CreateFrame("Frame","SparkleButtModeSelector",UIParent)
-    selector:SetSize(20,200)
+    selector:SetSize(20,225)
     selector:SetFrameStrata("DIALOG")
     selector:SetClampedToScreen(true)
     selector:SetMovable(true)
@@ -1078,7 +1085,11 @@ local function BuildSelector()
         local disc=button:CreateTexture(nil,"ARTWORK")
         disc:SetSize(9,9)
         disc:SetPoint("CENTER")
-        disc:SetTexture("Interface\\AddOns\\SparkleButt\\Media\\mode_circle.tga")
+        if def.key=="panel" then
+            disc:SetColorTexture(0.24,0.24,0.24,0.9) -- empty gray square when OFF
+        else
+            disc:SetTexture("Interface\\AddOns\\SparkleButt\\Media\\mode_circle.tga")
+        end
         button.disc=disc
         if def.key=="pet" then
             -- One half of the original circular texture; no extra assets.
@@ -1135,7 +1146,11 @@ UpdateModeUI=function()
     for i,def in ipairs(buttonDefinitions) do
         local b=modeButtons[i]
         local active=(mode==def.key)
-        if def.key=="wand" then
+        if def.key=="panel" then
+            local panelOn=type(SparkleButtPanelIsEnabled)=="function" and SparkleButtPanelIsEnabled()
+            if panelOn then b.disc:SetColorTexture(0.48,0.10,0.14,1)
+            else b.disc:SetColorTexture(0.24,0.24,0.24,0.9) end
+        elseif def.key=="wand" then
             local wandOn=type(SparkleWandIsEnabled)=="function" and SparkleWandIsEnabled()
             if wandOn then b.disc:SetVertexColor(unpack(def.rgb))
             else b.disc:SetVertexColor(0.29,0.22,0.35,1) end
@@ -1224,6 +1239,13 @@ SlashCmdList.SPARKLEBUTT=function(input)
     if cmd=="look" then
         if type(SparkleButtWardrobeSelect)=="function" then SparkleButtWardrobeSelect(arg)
         else Say("Wardrobe module missing; check SparkleWardrobe.lua.") end
+        return
+    end
+    if cmd=="panel" then
+        if type(SparkleButtPanelDiagnostic)=="function" and (arg=="status" or arg=="test") then
+            SparkleButtPanelDiagnostic(arg)
+        elseif type(SparkleButtPanelPositionToggle)=="function" then SparkleButtPanelPositionToggle()
+        else Say("SparklePanel module unavailable. Check SparklePanel.lua.") end
         return
     end
     if cmd=="radar" then
@@ -1371,7 +1393,7 @@ SlashCmdList.SPARKLEBUTT=function(input)
     else
         Say("Alt+left-click the world map to set a destination; /sb clear to cancel; /sb waypoint MAPID X Y manually.")
         Say("/sb wardrobe | /sb look emerald|crimson|azure|dark|bronze|wisp|sprite")
-        Say("/sb radar on|off|status|reset | /sb text [above/below/off] | snack | auto | chase | pet | petside left/right | status | off")
+        Say("/sb panel (positioning) | /sb radar on|off|status|reset | /sb text [above/below/off] | snack | auto | chase | pet | petside left/right | status | off")
         return
     end
     snack=nil
