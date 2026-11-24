@@ -4,11 +4,11 @@
 
 ### Seven surprisingly capable magical traveling companions.
 
-**Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · SparkleBag · SparkleWand · Custom waypoints · Snack Heart**
+**Quest navigation · Seven companion looks · Live 3D wardrobe · SparkleRadar · Combat Panel · SparkleBag · SparkleWand · Custom waypoints · Snack Heart**
 
 *An accessibility-minded companion addon built for WoW Forever, powered by StarfallTrail navigation.*
 
-**Current build:** v0.6.46 (Snack Heart + SparkleWand) · **WoW Forever interface:** 16001
+**Current build:** v0.6.57 (Combat Panel + Radar deduplication test) · **WoW Forever interface:** 16001
 
 </div>
 
@@ -31,8 +31,8 @@ SparkleButt is a small animated magical companion that stays with your character
 | Click the **hollow pink heart above the wardrobe button** or use `/sb snack` to give SparkleButt a treat. The heart fills during the snack animation, then becomes hollow again. | SparkleButt flies between guiding and Pet positions rather than abruptly teleporting. |
 | 🪙 **SparkleBag** | 💜 **SparkleWand** |
 | Open your bank and press the silver SparkleBag control **once** to deposit matching items from your backpack and equipped bags. | Enable the **plum-purple SparkleWand control** for right-click wand shooting on hostile mouseover targets. Turn it off to restore ordinary right-click behavior. |
-| 💬 **Player interactions** | ❤️ **Snack Heart** |
-| Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. | Click the hollow heart above the wardrobe selector to play the snack animation; it fills while the treat is active. |
+| 💬 **Player interactions** | ⚔️ **Combat Panel** |
+| Right-click a player name printed by SparkleRadar to open the game’s native player menu. Full-name whispers are supported. | Optional, movable health-bar rows for engaged enemies exposed by the game client; highlights your current target. |
 
 ### Meet the companion wardrobe
 
@@ -54,7 +54,7 @@ The small **color-changing wardrobe button above Auto** cycles through these loo
 
 > **Rare & elite alerts:** Special alerts are implemented, but the rare-spawn alert has not yet been verified in a live encounter.
 
-## Ten compact controls
+## Eleven compact controls
 
 | Control | What it does |
 |:---|:---|
@@ -66,8 +66,9 @@ The small **color-changing wardrobe button above Auto** cycles through these loo
 | 📏 **Target Range** | Cycle the range label **Above → Below → Off** |
 | 🟠 **SparkleRadar** | Switch mouseover identification on or off independently |
 | ⚫ **Off** | Turn off both SparkleButt and SparkleRadar |
+| 💜 **SparkleWand** | Plum-purple toggle; enables or disables right-click wand shooting for wand-equipped classes |
+| 🟥 **Panel** | Gray square when off, dark red when on; enables combat-only enemy health rows |
 | ⚪ **SparkleBag** | While your personal bank is open, deposit inventory items whose item types were already in your bank |
-| 💜 **SparkleWand** | Plum-purple toggle below SparkleBag; enables or disables right-click wand shooting for wand-equipped classes |
 
 ## Your adventure, your destination: custom waypoints 📍
 
@@ -97,6 +98,20 @@ The **plum-purple control immediately below SparkleBag** toggles SparkleWand ind
 
 The **small hollow pink heart above the wardrobe color button** triggers the existing companion snack animation. Click once to give SparkleButt a treat and enjoy the accompanying hearts and chat reactions. The heart fills while the animation plays, then returns to a hollow outline so you can feed him again. Your companion needs to be enabled for snacks. The original `/sb snack` command still works.
 
+## Combat Panel: engaged enemies at a glance ⚔️
+
+**New in v0.6.51–v0.6.57.** Click the small **Panel** square in SparkleButt’s selector to enable a compact, combat-only display of enemy names, levels (when available), and health bars. **Gray = off; dark red = on.** The panel is **off by default** and its enabled state is saved. It has no permanent background tray during normal use.
+
+- **Nameplate-first collection:** the panel uses visible nameplate units to represent distinct enemies. v0.6.57 prioritizes those units to avoid duplicate rows caused by overlapping target and party-target references.
+- **Conservative fallback:** when no qualifying nameplates are visible, it can show a single eligible target or party/raid target rather than risking duplicated enemies.
+- **Current-target highlight:** a gold border identifies your selected target when the client exposes enough information to match it.
+- **Display only:** rows do not target enemies or perform combat actions. Health bars use native WoW status bars to handle protected health values.
+- **Movable and persistent:** use `/sb panel` to show positioning mode, drag the panel, then type `/sb panel` again. Its location persists across sessions.
+
+**Diagnostics:** `/sb panel status` prints the panel's enabled/combat/positioning state and available enemy count. `/sb panel test` toggles **three synthetic enemy rows** for layout testing without combat. Turn test mode off again before normal use.
+
+**Known limits:** the game only exposes some nearby units. Enemies with no visible nameplate or accessible target token may not appear; combat and health information can be restricted. **A successful deduplication test does not establish complete enemy detection.** SparkleRadar itself may not behave as expected in dungeons; dungeon Radar coverage is not verified for this build. The v0.6.57 ZIP is labeled **TEST** and should be validated in WoW Forever before being called a stable release.
+
 ## SparkleRadar, at a glance
 
 Hover over a character or creature and SparkleButt can print its name, level (`Lv`), and available type/class information. Players use familiar WoW class colors; hostile and friendly creatures use reaction coloring. Different creatures with the same name are tracked separately where unit GUIDs are available.
@@ -121,7 +136,7 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 1. Install **Questie**, **QuestieDB**, and the **original StarfallTrail** from its creator; apply the separately provided SparkleButt integration changes.
 2. Place `SparkleButt` in your WoW Forever `Interface/AddOns` directory.
-3. Reload the game (`/reload`) and use the in-game selector or commands below. The **Snack Heart** sits above the wardrobe cycle button; the wardrobe button sits above **Auto**. The silver **SparkleBag** button is beneath **Off** and requires an open bank. The plum-purple **SparkleWand** button sits immediately below SparkleBag.
+3. Reload the game (`/reload`) and use the in-game selector or commands below. The **Snack Heart** sits above the wardrobe cycle button; the wardrobe button sits above **Auto**. The selector also includes the plum-purple **SparkleWand** toggle, the gray/dark-red **Panel** square, and the silver **SparkleBag** button. SparkleBag requires an open personal bank.
 
 ```text
 /sb wardrobe             Open the seven-companion 3D preview menu
@@ -133,6 +148,9 @@ Install all three dependencies before using SparkleButt's quest navigation:
 /sb petside right        Place Pet on the right
 /sb radar on             Enable mouseover identification
 /sb radar off            Disable mouseover identification
+/sb panel                Toggle Combat Panel positioning and dragging
+/sb panel status         Print Combat Panel diagnostic status
+/sb panel test           Toggle three synthetic test rows
 /sb text                 Cycle target-range text position
 /sb waypoint MAPID X Y   Set a custom destination by coordinates
 /sb clear                Cancel a custom waypoint
@@ -145,19 +163,20 @@ Install all three dependencies before using SparkleButt's quest navigation:
 
 - **Wardrobe preview uses an in-game model frame:** colors and light levels can look different from the flying companion in the world.
 - **Target range is approximate:** labels indicate tested range thresholds, **not exact yards**.
-- **Mouseover-only Radar:** players and creatures are supported; herb, mining, and chest identification is **not included** in this release.
+- **Mouseover-only Radar:** players and creatures are supported; herb, mining, and chest identification is **not included** in this release. Dungeon behavior still needs verification.
 - **SparkleWand:** Disable AutoWand and other conflicting right-click binding addons; combat lockdown defers toggle binding updates until combat ends.
 - **Snack Heart:** Requires an active companion, and `/sb snack` remains available.
+- **Combat Panel:** Off by default; only exposes enemies reported by available client unit tokens and nameplates. Use `/sb panel test` for layout diagnosis. v0.6.57 is a test build.
 - **StarfallTrail is required.** Our integration allows navigation calculations to continue when its visible ground trail is turned off and supplies the custom-waypoint bridge.
 - **SparkleBag requires an open personal bank** and available bank capacity; it will not deposit item types absent from the bank at the start of the action.
 - **Treasure Nose is shelved:** no autonomous gathering-node tracking is claimed.
-- The current version has been field-tested for navigation, Radar, player interaction menus, full-name whispers, one-click SparkleBag deposits, all seven companion models, the wardrobe preview, the Snack Heart, and SparkleWand right-click attacks; rare-spawn alerts still need verification.
+- Earlier builds were field-tested for navigation, Radar, player interaction menus, full-name whispers, one-click SparkleBag deposits, all seven companion models, the wardrobe preview, the Snack Heart, and SparkleWand right-click attacks. v0.6.57 includes an in-progress Combat Panel with nameplate-first deduplication; complete in-game validation remains outstanding. Rare-spawn alerts also still need verification.
 
 ## Credits & collaboration
 
 **Created by Santa Nicholas with Murphy** through iterative design and in-game testing.
 
-**StarfallTrail** is an independent addon belonging to its original author. This project provides *integration changes*, not an alternative distribution of StarfallTrail. Please obtain the original addon from its creator.
+**StarfallTrail** is an independent addon by **PXPerfect Mike**. SparkleButt uses it for navigation and provides integration changes for custom waypoints and invisible-route operation. The supplied v0.6.57 test ZIP contains both `SparkleButt/` and a `StarfallTrail/` directory with integration files; when publishing, preserve the original author’s attribution and check distribution permissions. Users can obtain StarfallTrail from its original creator and apply the integration changes.
 
 Feedback, bug reports, and code review are welcome—especially from **PXPerfect Mike**.
 
