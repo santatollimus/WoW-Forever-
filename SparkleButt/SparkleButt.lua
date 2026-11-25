@@ -1,5 +1,5 @@
 -- SparkleButt v0.6.12 Treasure highlight test: arrival glow for Pet/Auto and varied snack personality.
--- Reads the route through an opt-in bridge; never inspects arrow artwork.
+-- Reads navigation only through Starfall Trail's documented public API.
 local ADDON = ...
 local MEDIA = "Interface\\AddOns\\SparkleButt\\Media\\"
 local WHELP_DISPLAY = 6291
@@ -214,26 +214,82 @@ local function InitDB()
     end
     -- Auto is opt-in. Existing saved Chase/Pet/Off selections are unchanged.
 end
--- Bridge is loaded in Starfall Trail's own namespace, with its private route API.
--- The bridge returns nil when there is no active ground route or the player arrived.
+-- Starfall Trail 1.3.0+ exposes a documented public API for companion addons.
+-- Keep the old local status strings so the rest of SparkleButt's state machine
+-- remains unchanged while no longer touching Starfall Trail private internals.
+local ROUTE_OWNER="SparkleButt"
+local mapWaypointHandlerInstalled=false
+
+local function GetStarfallAPI()
+    local api=StarfallTrailAPI
+    if not (api and tonumber(api.version) and api.version>=1) then return nil end
+    return api
+end
+
 local function ReadStarfall()
-    local bridge = StarfallTrailSparkleButtBridge
-    if not bridge or type(bridge.Read) ~= "function" then
-        return nil,"bridge missing"
+    local api=GetStarfallAPI()
+    if not api or type(api.GetDirection)~="function" then
+        return nil,"Starfall Trail 1.3.0+ API missing"
     end
-    local ok, angle, status = pcall(bridge.Read)
-    if not ok then return nil,"bridge error: "..tostring(angle) end
-    return angle,status or "no route"
+    local ok,angle,distance,arrived,onRoute=pcall(api.GetDirection)
+    if not ok then return nil,"direction API error: "..tostring(angle) end
+    if not angle then return nil,tostring(distance or "no destination") end
+    if arrived then return angle,"arrived" end
+    return angle,onRoute and "tracking trail" or "tracking direct"
 end
 
 local function ReadProjected()
-    local bridge=StarfallTrailSparkleButtBridge
-    if not bridge or type(bridge.ReadProjected)~="function" then
-        return nil,nil,nil,"projection bridge missing"
+    local api=GetStarfallAPI()
+    if not api or type(api.GetRoutePoint)~="function" then
+        return nil,nil,nil,"Starfall Trail 1.3.0+ projection API missing"
     end
-    local ok,x,y,depth,status=pcall(bridge.ReadProjected,db.ahead,db.lift)
-    if not ok then return nil,nil,nil,"projection error: "..tostring(x) end
-    return x,y,depth,status
+    local ok,x,y,depth=pcall(api.GetRoutePoint,db.ahead,db.lift)
+    if not ok then return nil,nil,nil,"projection API error: "..tostring(x) end
+    if not x then return nil,nil,nil,tostring(y or "no route") end
+    return x,y,depth,"tracking trail"
+end
+
+local function UpdateRouteRequest()
+    local api=GetStarfallAPI()
+    if api and type(api.RequestRoute)=="function" and db then
+        -- Auto must retain the route while waiting beside the player for the
+        -- next destination. Manual Chase also needs projection data.
+        api.RequestRoute(ROUTE_OWNER,db.enabled and (db.autoMode or db.chase) and not db.test)
+    end
+end
+
+local function ClearWaypoint()
+    local api=GetStarfallAPI()
+    if not api or type(api.ClearWaypoint)~="function" then
+        return false,"Starfall Trail 1.3.0+ waypoint API missing"
+    end
+    api.ClearWaypoint()
+    return true
+end
+
+local function SetWaypoint(mapID,x,y,label)
+    local api=GetStarfallAPI()
+    if not api or type(api.SetWaypoint)~="function" then
+        return false,"Starfall Trail 1.3.0+ waypoint API missing"
+    end
+    local ok,success,reason=pcall(api.SetWaypoint,mapID,x,y,label or "SparkleButt waypoint")
+    if not ok then return false,"waypoint API error: "..tostring(success) end
+    if not success then return false,tostring(reason or "unable to set waypoint") end
+    return true
+end
+
+local function InstallMapWaypointHandler()
+    if mapWaypointHandlerInstalled then return end
+    if not (WorldMapFrame and type(WorldMapFrame.AddCanvasClickHandler)=="function") then return end
+    WorldMapFrame:AddCanvasClickHandler(function(map,button)
+        if button~="LeftButton" or not IsAltKeyDown() then return false end
+        local x,y=map:GetNormalizedCursorPosition()
+        local mapID=map:GetMapID()
+        local ok,reason=SetWaypoint(mapID,x,y,"SparkleButt waypoint")
+        if not ok then Say(reason) end
+        return ok
+    end,15)
+    mapWaypointHandlerInstalled=true
 end
 
 local function SetModel()
@@ -968,6 +1024,7 @@ local function ApplyMode(key)
             end
         end
     end
+    UpdateRouteRequest()
     if UpdateModeUI then UpdateModeUI() end
 end
 local function BuildSelector()
@@ -1213,6 +1270,7 @@ events:SetScript("OnEvent",function(_,event,name)
         if type(SparkleButtWardrobeSyncGlow)=="function" then SparkleButtWardrobeSyncGlow() end
         Build()
         BuildSelector()
+        InstallMapWaypointHandler()
         -- Auto resumes in its saved mode; reconcile to live route on login.
         if db.autoMode then
             local a,st=ReadStarfall()
@@ -1222,7 +1280,8 @@ events:SetScript("OnEvent",function(_,event,name)
             autoRouteSeenFor=0
             if not db.chase then Move(0) end
         end
-        Say("v0.6.46 Snack Heart + SparkleWand TEST ready. Click the top dot to cycle, or /sb wardrobe for the menu.")
+        UpdateRouteRequest()
+        Say("v0.6.58 public Starfall Trail API TEST ready. Click the top dot to cycle, or /sb wardrobe for the menu.")
     end
 end)
 
@@ -1299,21 +1358,17 @@ SlashCmdList.SPARKLEBUTT=function(input)
         Say("Compass retired; using Chase instead.")
     elseif cmd=="chase" then db.chase=true; db.compass=true; db.enabled=true; db.autoMode=false; db.test=false
     elseif cmd=="clear" or cmd=="cancel" then
-        if SparkleButtWaypoint and SparkleButtWaypoint.Clear then
-            SparkleButtWaypoint.Clear()
-        else Say("Waypoint bridge not loaded; install the included Starfall patch.") end
+        local ok,err=ClearWaypoint()
+        if not ok then Say(err) end
         return
     elseif cmd=="waypoint" or cmd=="goto" then
-        if not (SparkleButtWaypoint and SparkleButtWaypoint.Set) then
-            Say("Waypoint bridge not loaded; install the included Starfall patch."); return
-        end
         local a,b,c = arg:match("^(%d+)%s+([%d%.]+)%s+([%d%.]+)$")
         if not a then Say("Usage: /sb waypoint MAPID X Y  (e.g. /sb waypoint 37 42.5 65.0)"); return end
         b,c=tonumber(b),tonumber(c)
         if not (b and c and b>=0 and b<=100 and c>=0 and c<=100) then
             Say("X and Y must be map percentages between 0 and 100."); return
         end
-        local ok,err=SparkleButtWaypoint.Set(tonumber(a),b/100,c/100)
+        local ok,err=SetWaypoint(tonumber(a),b/100,c/100,"SparkleButt waypoint")
         if not ok then Say(err) end
         return
     elseif cmd=="ahead" then
@@ -1398,6 +1453,7 @@ SlashCmdList.SPARKLEBUTT=function(input)
     end
     snack=nil
     Build(); SetModel()
+    UpdateRouteRequest()
     if UpdateModeUI then UpdateModeUI() end
     flightTransition=nil
     chaseTargetX=nil; chaseTargetY=nil; chaseX=nil; chaseY=nil

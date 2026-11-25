@@ -1,4 +1,4 @@
--- SparkleButt Combat Panel v0.6.57 nameplate-first deduplication
+-- SparkleButt Combat Panel v0.6.58 nameplate-first deduplication + threat cues
 -- Display-only, movable, non-secure frame. Does not call targeting functions.
 -- The WoW client exposes nameplate units only when their nameplates are present;
 -- this is NOT a radar for enemies outside the client's exposed unit set.
@@ -7,7 +7,7 @@ local positioning = false
 local testMode = false -- manually toggled, never saved
 local elapsed = 0
 local MAX_ROWS = 12
-local WIDTH, HEIGHT, GAP = 128, 28, 4
+local WIDTH, HEIGHT, GAP = 128, 34, 4
 
 local function DB()
     SparkleButtDB = SparkleButtDB or {}
@@ -40,6 +40,19 @@ end
 local function Combat()
     return SafeCall(UnitAffectingCombat, "player") or (type(InCombatLockdown)=="function" and InCombatLockdown()) or false
 end
+-- Threat is a discrete client-provided state, not an estimated percentage.
+-- 0: low; 1: high but not tanking; 2: insecurely tanking; 3: securely tanking.
+-- No threat value is fabricated when the API is unavailable or protected.
+local function ThreatState(unit)
+    if not unit then return nil end -- synthetic rows pass their own state
+    local status = Plain(SafeCall(UnitThreatSituation, "player", unit))
+    if type(status) ~= "number" then return nil end
+    if status == 0 or status == 1 or status == 2 or status == 3 then
+        return status
+    end
+    return nil
+end
+
 local function SetAnchor()
     if not panel then return end
     local db=DB()
@@ -79,8 +92,8 @@ local function MakeRow(parent, index)
     level:SetJustifyH("RIGHT")
     level:SetTextColor(0.82,0.73,0.69)
     local barBg=row:CreateTexture(nil,"ARTWORK")
-    barBg:SetPoint("BOTTOMLEFT",row,"BOTTOMLEFT",5,4)
-    barBg:SetSize(WIDTH-10,9)
+    barBg:SetPoint("BOTTOMLEFT",row,"BOTTOMLEFT",5,11)
+    barBg:SetSize(WIDTH-10,8)
     barBg:SetColorTexture(0.26,0.10,0.11,0.95)
     -- Native StatusBar accepts secret health values without Lua arithmetic.
     local bar=CreateFrame("StatusBar",nil,row)
@@ -89,6 +102,16 @@ local function MakeRow(parent, index)
     bar:SetStatusBarColor(0.72,0.19,0.22,0.95)
     bar:SetMinMaxValues(0,100)
     bar:SetValue(100)
+    -- Thin discrete threat thermometer. Gold targeting edges remain separate.
+    local threatBg=row:CreateTexture(nil,"ARTWORK")
+    threatBg:SetPoint("BOTTOMLEFT",row,"BOTTOMLEFT",5,4)
+    threatBg:SetSize(WIDTH-10,4)
+    threatBg:SetColorTexture(0.20,0.20,0.20,0.8)
+    local threat=CreateFrame("StatusBar",nil,row)
+    threat:SetAllPoints(threatBg)
+    threat:SetStatusBarTexture("Interface\\TARGETINGFRAME\\UI-StatusBar")
+    threat:SetMinMaxValues(0,4)
+    threat:SetValue(0)
     -- A display-only target indicator; never calls TargetUnit or creates secure actions.
     row.targetEdge={}
     for _,spec in ipairs({{"TOPLEFT","TOPRIGHT",2}, {"BOTTOMLEFT","BOTTOMRIGHT",2}}) do
@@ -109,7 +132,7 @@ local function MakeRow(parent, index)
         edge:Hide()
         row.targetEdge[#row.targetEdge+1]=edge
     end
-    row.name, row.level, row.bar=name,level,bar
+    row.name, row.level, row.bar, row.threat=name,level,bar,threat
     row:Hide()
     return row
 end
@@ -241,9 +264,9 @@ function SparkleButtPanelRefresh()
     if testMode then
         -- Synthetic data to verify drawing independent of combat and nameplate APIs.
         entries={
-            {name="TEST Highwayman",level=17,hp=73,hpMax=100,isTarget=true},
-            {name="TEST Pathstalker",level=16,hp=45,hpMax=100},
-            {name="TEST Knuckleduster",level=17,hp=100,hpMax=100},
+            {name="TEST Highwayman",level=17,hp=73,hpMax=100,isTarget=true, threatState=0},
+            {name="TEST Pathstalker",level=16,hp=45,hpMax=100,threatState=1},
+            {name="TEST Knuckleduster",level=17,hp=100,hpMax=100,threatState=3},
         }
     end
     for i=1,MAX_ROWS do
@@ -263,6 +286,23 @@ function SparkleButtPanelRefresh()
                 row.bar:SetMinMaxValues(0,100)
                 row.bar:SetValue(100)
                 row.bar:SetAlpha(0.25)
+            end
+            -- Keep the target border gold regardless of the threat state.
+            local state = testMode and data.threatState or ThreatState(data.unit)
+            if state == 0 then
+                row.threat:SetStatusBarColor(0.22,0.75,0.37,1) -- green
+                row.threat:SetValue(1)
+            elseif state == 1 then
+                row.threat:SetStatusBarColor(0.96,0.76,0.20,1) -- yellow
+                row.threat:SetValue(2)
+            elseif state == 2 then
+                row.threat:SetStatusBarColor(0.96,0.46,0.14,1) -- orange
+                row.threat:SetValue(3)
+            elseif state == 3 then
+                row.threat:SetStatusBarColor(0.89,0.18,0.20,1) -- red
+                row.threat:SetValue(4)
+            else
+                row.threat:SetValue(0) -- gray background = unavailable
             end
             for _,edge in ipairs(row.targetEdge) do edge:SetShown(data.isTarget==true) end
             row:Show()
@@ -295,7 +335,7 @@ function SparkleButtPanelDiagnostic(command)
     local entries=GetEntries()
     local target=Plain(SafeCall(UnitName,"target")) or "[protected or unavailable]"
     local targetExists=SafeCall(UnitExists,"target") and "yes" or "no"
-    Say("v0.6.57 status: enabled="..tostring(db.panelEnabled)..", combat="..tostring(combat)..", positioning="..tostring(positioning)..", test="..tostring(testMode))
+    Say("v0.6.58 status: enabled="..tostring(db.panelEnabled)..", combat="..tostring(combat)..", positioning="..tostring(positioning)..", test="..tostring(testMode))
     Say("target="..tostring(target).." (exists="..targetExists.."), eligible enemies="..tostring(#entries)..", panel visible="..tostring(panel:IsShown()))
     Say("panel anchor: x="..tostring(math.floor(db.panelX)).." y="..tostring(math.floor(db.panelY))..". Use /sb panel test for 3 fake rows.")
 end

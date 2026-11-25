@@ -2,7 +2,7 @@
 ## Title: SparkleButt
 ## Notes: Emerald Whelpling navigation, target range, and integrated unit-only SparkleRadar with quest indicator and Radar toggle
 ## Author: Santa Nicholas and Murphy
-## Version: 0.6.57
+## Version: 0.6.58
 ## Dependencies: StarfallTrail
 ## SavedVariables: SparkleButtDB
 SparkleButt.lua
